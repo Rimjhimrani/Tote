@@ -94,26 +94,13 @@ def find_column(df, keywords):
                 return col
     return None
 
-def extract_rack_no_digits(rack_no_str):
-    """Extract first and second digits from rack number"""
-    if not rack_no_str or not isinstance(rack_no_str, str):
-        return "", ""
-    
-    # Remove any non-digit characters and get digits
-    digits = re.findall(r'\d', str(rack_no_str))
-    
-    first_digit = digits[0] if len(digits) > 0 else ""
-    second_digit = digits[1] if len(digits) > 1 else ""
-    
-    return first_digit, second_digit
-
 def extract_line_location_components(row, columns):
     """Extract components for Line Location (L.LOC) from specific columns"""
     components = [''] * 7
     
     # Extract values from respective columns
-    if columns['bus_model'] and columns['bus_model'] in row:
-        components[0] = str(row[columns['bus_model']]) if pd.notna(row[columns['bus_model']]) else ""
+    if columns['model'] and columns['model'] in row:
+        components[0] = str(row[columns['model']]) if pd.notna(row[columns['model']]) else ""
     
     if columns['station_no'] and columns['station_no'] in row:
         components[1] = str(row[columns['station_no']]) if pd.notna(row[columns['station_no']]) else ""
@@ -121,11 +108,13 @@ def extract_line_location_components(row, columns):
     if columns['rack'] and columns['rack'] in row:
         components[2] = str(row[columns['rack']]) if pd.notna(row[columns['rack']]) else ""
     
-    if columns['rack_no'] and columns['rack_no'] in row:
-        rack_no_value = str(row[columns['rack_no']]) if pd.notna(row[columns['rack_no']]) else ""
-        first_digit, second_digit = extract_rack_no_digits(rack_no_value)
-        components[3] = first_digit
-        components[4] = second_digit
+    # Extract first digit from separate column
+    if columns['rack_no_1st'] and columns['rack_no_1st'] in row:
+        components[3] = str(row[columns['rack_no_1st']]) if pd.notna(row[columns['rack_no_1st']]) else ""
+    
+    # Extract second digit from separate column
+    if columns['rack_no_2nd'] and columns['rack_no_2nd'] in row:
+        components[4] = str(row[columns['rack_no_2nd']]) if pd.notna(row[columns['rack_no_2nd']]) else ""
     
     if columns['level'] and columns['level'] in row:
         components[5] = str(row[columns['level']]) if pd.notna(row[columns['level']]) else ""
@@ -181,33 +170,34 @@ def generate_sticker_labels(df, progress_bar=None, status_container=None):
         )
         canvas.restoreState()
 
-    # Identify columns (case-insensitive)
+    # Identify columns (case-insensitive) - Updated for your exact column names
     original_columns = df.columns.tolist()
     
     # Find basic columns
     part_no_col = find_column(df, ['PART NO', 'PARTNO', 'PART', 'PART_NO', 'PART#'])
-    desc_col = find_column(df, ['DESC', 'DESCRIPTION', 'NAME', 'PRODUCT_NAME'])
+    desc_col = find_column(df, ['PART DESC', 'DESC', 'DESCRIPTION', 'NAME', 'PRODUCT_NAME'])
     qty_bin_col = find_column(df, ['QTY/BIN', 'QTY_BIN', 'QTYBIN', 'QTY', 'QUANTITY'])
     
-    # Find Line Location columns
+    # Find Line Location columns - Updated for your exact column names
     line_location_columns = {
-        'bus_model': find_column(df, ['BUS MODEL', 'BUS_MODEL', 'BUSMODEL', 'BUS']),
+        'model': find_column(df, ['MODEL', 'BUS MODEL', 'BUS_MODEL', 'BUSMODEL', 'BUS']),
         'station_no': find_column(df, ['STATION NO', 'STATION_NO', 'STATIONNO', 'STATION']),
         'rack': find_column(df, ['RACK']),
-        'rack_no': find_column(df, ['RACK NO', 'RACK_NO', 'RACKNO']),
+        'rack_no_1st': find_column(df, ['RACK NO. (1ST DIGIT)', 'RACK NO (1ST DIGIT)', 'RACK_NO_1ST', 'RACK NO 1ST']),
+        'rack_no_2nd': find_column(df, ['RACK NO. (2ND DIGIT)', 'RACK NO (2ND DIGIT)', 'RACK_NO_2ND', 'RACK NO 2ND']),
         'level': find_column(df, ['LEVEL']),
         'cell': find_column(df, ['CELL'])
     }
     
-    # Find Store Location (ABB) columns
+    # Find Store Location (ABB) columns - Updated for your exact column names
     store_location_columns = {
-        'abb_zone': find_column(df, ['ABB ZONE', 'ABB_ZONE', 'ABBZONE', 'ZONE']),
-        'abb_location': find_column(df, ['ABB LOCATION', 'ABB_LOCATION', 'ABBLOCATION']),
-        'abb_floor': find_column(df, ['ABB FLOOR', 'ABB_FLOOR', 'ABBFLOOR', 'FLOOR']),
-        'abb_rack_no': find_column(df, ['ABB RACK NO', 'ABB_RACK_NO', 'ABBRACKNO', 'ABB RACK']),
-        'abb_level_in_rack': find_column(df, ['ABB LEVEL IN RACK', 'ABB_LEVEL_IN_RACK', 'ABBLEVELINRACK', 'ABB LEVEL']),
-        'abb_cell': find_column(df, ['ABB CELL', 'ABB_CELL', 'ABBCELL']),
-        'abb_no': find_column(df, ['ABB NO', 'ABB_NO', 'ABBNO', 'ABB NUMBER'])
+        'abb_zone': find_column(df, ['ABB FOR ZONE', 'ABB_FOR_ZONE', 'ABB ZONE', 'ABB_ZONE', 'ABBZONE', 'ZONE']),
+        'abb_location': find_column(df, ['ABB FOR LOCATION', 'ABB_FOR_LOCATION', 'ABB LOCATION', 'ABB_LOCATION', 'ABBLOCATION']),
+        'abb_floor': find_column(df, ['ABB FOR FLOOR', 'ABB_FOR_FLOOR', 'ABB FLOOR', 'ABB_FLOOR', 'ABBFLOOR', 'FLOOR']),
+        'abb_rack_no': find_column(df, ['ABB FOR RACK NO', 'ABB_FOR_RACK_NO', 'ABB RACK NO', 'ABB_RACK_NO', 'ABBRACKNO', 'ABB RACK']),
+        'abb_level_in_rack': find_column(df, ['ABB FOR LEVEL IN RACK', 'ABB_FOR_LEVEL_IN_RACK', 'ABB LEVEL IN RACK', 'ABB_LEVEL_IN_RACK', 'ABBLEVELINRACK', 'ABB LEVEL']),
+        'abb_cell': find_column(df, ['ABB FOR CELL', 'ABB_FOR_CELL', 'ABB CELL', 'ABB_CELL', 'ABBCELL']),
+        'abb_no': find_column(df, ['ABB FOR NO', 'ABB_FOR_NO', 'ABB NO', 'ABB_NO', 'ABBNO', 'ABB NUMBER'])
     }
 
     if status_container:
@@ -523,31 +513,31 @@ def main():
         
         st.markdown("""
         **Line Location (L.LOC) - 7 boxes:**
-        1. **Bus Model** (BUS MODEL, BUS_MODEL, etc.)
+        1. **Model** (MODEL, BUS MODEL, etc.)
         2. **Station No** (STATION NO, STATION_NO, etc.)
         3. **Rack** (RACK)
-        4. **Rack No (1st digit)** (from RACK NO column)
-        5. **Rack No (2nd digit)** (from RACK NO column)
+        4. **Rack No. (1st digit)** (RACK NO. (1ST DIGIT))
+        5. **Rack No. (2nd digit)** (RACK NO. (2ND DIGIT))
         6. **Level** (LEVEL)
         7. **Cell** (CELL)
         """)
         
         st.markdown("""
         **Store Location (S.LOC) - 7 boxes:**
-        1. **ABB Zone** (ABB ZONE, ABB_ZONE, etc.)
-        2. **ABB Location** (ABB LOCATION, ABB_LOCATION, etc.)
-        3. **ABB Floor** (ABB FLOOR, ABB_FLOOR, etc.)
-        4. **ABB Rack No** (ABB RACK NO, ABB_RACK_NO, etc.)
-        5. **ABB Level in Rack** (ABB LEVEL IN RACK, etc.)
-        6. **ABB Cell** (ABB CELL, ABB_CELL, etc.)
-        7. **ABB No** (ABB NO, ABB_NO, etc.)
+        1. **ABB for zone** (ABB FOR ZONE, ABB_FOR_ZONE, etc.)
+        2. **ABB for location** (ABB FOR LOCATION, ABB_FOR_LOCATION, etc.)
+        3. **ABB for floor** (ABB FOR FLOOR, ABB_FOR_FLOOR, etc.)
+        4. **ABB for Rack No** (ABB FOR RACK NO, ABB_FOR_RACK_NO, etc.)
+        5. **ABB for level in rack** (ABB FOR LEVEL IN RACK, etc.)
+        6. **ABB for cell** (ABB FOR CELL, ABB_FOR_CELL, etc.)
+        7. **ABB for No** (ABB FOR NO, ABB_FOR_NO, etc.)
         """)
         
         st.markdown("""
         **Basic Columns:**
-        - Part Number (PART, PARTNO, etc.)
-        - Description (DESC, NAME, etc.)
-        - Quantity/Bin (QTY/BIN, QTY, etc.)
+        - Part No (PART NO, PARTNO, etc.)
+        - Part Desc (PART DESC, DESC, etc.)
+        - Qty/Bin (QTY/BIN, QTY, etc.)
         """)
         
         st.markdown("""
@@ -556,7 +546,7 @@ def main():
         ✅ QR code with all information  
         ✅ Professional layout with borders  
         ✅ 7-box layout for locations  
-        ✅ Rack No digit splitting  
+        ✅ Separate rack digit columns  
         ✅ One sticker per page  
         """)
 
